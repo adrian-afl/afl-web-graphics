@@ -1,0 +1,53 @@
+{
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "target": "ESNext",
+        "outDir": "./dist",
+        "lib": ["DOM", "ESNext"],
+        "baseUrl": "./",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": false,
+        "experimentalDecorators": false,
+        "allowSyntheticDefaultImports": false,
+        "allowJs": false,
+        "incremental": false,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noErrorTruncation": true,
+        "noFallthroughCasesInSwitch": true,
+        "strictPropertyInitialization": true,
+        "noImplicitOverride": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedParameters": true,
+        "alwaysStrict": true,
+        "disableReferencedProjectLoad": true,
+        "disableSolutionSearching": true,
+        "diagnostics": false,
+        "disableSourceOfProjectReferenceRedirect": true,
+        "exactOptionalPropertyTypes": true,
+        "forceConsistentCasingInFileNames": true,
+        "newLine": "lf",
+        "noEmitOnError": true,
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": true,
+        "useUnknownInCatchVariables": true,
+        "strict": true,
+        "noEmit": true,
+        "typeRoots": [
+            "./node_modules/@types"
+        ]
+    },
+    "include": [
+        "./src/**/*",
+        "./test/**/*"
+    ],
+    "exclude": [
+        "./node_modules"
+    ]
+}
