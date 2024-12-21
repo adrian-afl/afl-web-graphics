@@ -10,6 +10,8 @@ async function initWebGL2(): Promise<void> {
   document.body.appendChild(canvas);
   const api = new WebGLApiImplementation() as GPUApiInterface;
   await api.initialize(canvas, 640, 480, true);
+
+  console.log(api);
 }
 
 void initWebGL2();
