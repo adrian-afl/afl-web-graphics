@@ -1,4 +1,3 @@
-import { fullScreenQuad } from "./fullScreenQuadData";
 import {
   DefaultFramebuffer,
   Framebuffer,
@@ -25,7 +24,6 @@ import { WebGLApiImplementation } from "./webgl/WebGLApiImplementation";
 export {
   DefaultFramebuffer,
   Framebuffer,
-  fullScreenQuad,
   Geometry,
   GeometryMemoryLayout,
   GPUApiInterface,

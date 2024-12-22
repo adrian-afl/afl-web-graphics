@@ -143,7 +143,7 @@ export interface ShaderProgram<
   use(): MaybePromise<void>;
 
   bindSamplers(binds: {
-    [K in Extract<keyof Samplers, string>]: Texture2D;
+    [K in Extract<keyof Samplers, string>]?: Texture2D;
   }): MaybePromise<void>;
 
   bindSampler(
@@ -152,9 +152,8 @@ export interface ShaderProgram<
     texture: Texture2D
   ): MaybePromise<void>;
 
-  setUniforms(
-    binds: Record<
-      Extract<keyof Uniforms, string>,
+  setUniforms(binds: {
+    [K in Extract<keyof Uniforms, string>]?:
       | number
       | number[]
       | Vector2
@@ -168,9 +167,8 @@ export interface ShaderProgram<
       | Vector4[]
       | Matrix2[]
       | Matrix3[]
-      | Matrix4[]
-    >
-  ): MaybePromise<void>;
+      | Matrix4[];
+  }): MaybePromise<void>;
 }
 
 export interface GPUApiInterface {
@@ -188,7 +186,6 @@ export interface GPUApiInterface {
     layout: GeometryMemoryLayout,
     data: ArrayBuffer
   ): MaybePromise<Geometry>;
-  loadGeometry(file: string): MaybePromise<Geometry>;
 
   createShader<
     Uniforms extends ShaderUniforms,

@@ -121,25 +121,29 @@ export class WebGLShaderProgram<
   }
 
   public bindSamplers(binds: {
-    [K in Extract<keyof Samplers, string>]: Texture2D;
+    [K in Extract<keyof Samplers, string>]?: Texture2D;
   }): void {
     const entries = Object.entries(binds);
+    let activeTextureCursor = 0;
     for (let i = 0; i < entries.length; i++) {
       const name = entries[i][0];
       const texture = entries[i][1];
+      if (!texture) {
+        continue;
+      }
       const glHandle = texture.getHandle() as {
         handle: WebGLTexture;
         target: GLenum;
       };
-      this.gl.activeTexture(this.gl.TEXTURE0 + i);
+      this.gl.activeTexture(this.gl.TEXTURE0 + activeTextureCursor);
       this.gl.bindTexture(glHandle.target, glHandle.handle);
-      this.gl.uniform1i(this.getUniformLocation(name), i);
+      this.gl.uniform1i(this.getUniformLocation(name), activeTextureCursor);
+      activeTextureCursor++;
     }
   }
 
-  public setUniforms(
-    binds: Record<
-      Extract<keyof Uniforms, string>,
+  public setUniforms(binds: {
+    [K in Extract<keyof Uniforms, string>]?:
       | number
       | number[]
       | Vector2
@@ -153,9 +157,8 @@ export class WebGLShaderProgram<
       | Vector4[]
       | Matrix2[]
       | Matrix3[]
-      | Matrix4[]
-    >
-  ): MaybePromise<void> {
+      | Matrix4[];
+  }): MaybePromise<void> {
     const entries = Object.entries(binds);
     for (let i = 0; i < entries.length; i++) {
       const name = entries[i][0];

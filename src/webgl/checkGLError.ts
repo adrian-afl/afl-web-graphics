@@ -1,7 +1,7 @@
 export function checkGLError(gl: WebGL2RenderingContext): void {
   const err = gl.getError();
   if (err !== gl.NO_ERROR) {
-    console.error("OpenGL error detected\n");
+    console.error("WebGL error detected\n");
     switch (err) {
       case gl.INVALID_ENUM:
         throw new Error("gl.INVALID_ENUM");

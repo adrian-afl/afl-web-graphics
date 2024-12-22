@@ -14,11 +14,25 @@ async function initWebGL2(): Promise<void> {
   const api = new WebGLApiImplementation() as GPUApiInterface;
   await api.initialize(canvas, 640, 480, true);
 
-  const dingusGeometry = await api.loadGeometry("dingus.obj");
+  const dingusResponse = await fetch("dingus.raw");
+  const dingusGeometryBuffer =await  dingusResponse.arrayBuffer()
+
+  const dingusGeometry = await api.createGeometry({
+    "attributes": [
+      { "dimensions": 3, "normalize": false, "format": "float32" },
+      { "dimensions": 3, "normalize": false, "format": "float32" },
+      { "dimensions": 2, "normalize": false, "format": "float32" }
+    ]
+  }, dingusGeometryBuffer);
   const dingusTexture = await api.loadTexture2D("dingus.jpg", {});
 
   const uniforms = {
     modelMatrix: {
+      type: "matrix",
+      dimensions: 4,
+      format: "float",
+    },
+    projectionMatrix: {
       type: "matrix",
       dimensions: 4,
       format: "float",
@@ -40,6 +54,8 @@ async function initWebGL2(): Promise<void> {
 
   const dingusOrientation = new Matrix4();
 
+  const projectionMatrix = new Matrix4().perspective(70.0, 1.0, 0.1, 100.0);
+
   await shader.use();
 
   await shader.bindSamplers({
@@ -56,13 +72,14 @@ async function initWebGL2(): Promise<void> {
     const elapsed = (now - startTime) / 1000.0;
 
     dingusOrientation.fromRotationTranslationScale(
-      new Quaternion().setAxisAngle(new Vector3(0.0, 1.0, 0.0), elapsed),
-      new Vector3(0, 0, 0),
+      new Quaternion().setAxisAngle(new Vector3(0.0, 1.0, 0.0), -elapsed),
+      new Vector3(0, -0.3, -2),
       new Vector3(0.4, 0.4, 0.4)
     );
 
     await shader.setUniforms({
-      modelMatrix: dingusOrientation
+      modelMatrix: dingusOrientation,
+      projectionMatrix
     });
 
     await dingusGeometry.draw();

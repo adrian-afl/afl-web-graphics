@@ -13,7 +13,6 @@ import {
   TextureInput2DParameters,
 } from "../GPUApiInterface";
 import { loadAndResolveShaderSource } from "./loadAndResolveShaderSource";
-import { loadObjFileAsSingleGeometry } from "./objLoader/loadObjFile";
 import {
   WebGLDefaultFramebuffer,
   WebGLFramebufferClass,
@@ -102,36 +101,6 @@ export class WebGLApiImplementation implements GPUApiInterface {
     data: ArrayBuffer
   ): MaybePromise<Geometry> {
     return new WebGLGeometry(this.gl, layout, data);
-  }
-
-  public async loadGeometry(file: string): Promise<Geometry> {
-    const fileRequest = await fetch(file);
-    if (fileRequest.headers.get("Content-type") === "text/html") {
-      throw new Error(`Failed loading mesh ${file}, got html`);
-    }
-    if (file.endsWith(".obj")) {
-      const fileContent = await fileRequest.text();
-
-      const objFileData = loadObjFileAsSingleGeometry(fileContent);
-      const vao = objFileData.intermediate.getVertexArray();
-      return this.createGeometry(vao.layout, vao.data);
-    } else if (file.endsWith(".raw")) {
-      const fileContent = await fileRequest.arrayBuffer();
-      return this.createGeometry(
-        {
-          // placeholder for now
-          attributes: [
-            { dimensions: 3, normalize: false, format: "float32" },
-            { dimensions: 2, normalize: false, format: "float32" },
-            { dimensions: 3, normalize: false, format: "float32" },
-            { dimensions: 4, normalize: false, format: "float32" },
-          ],
-        },
-        fileContent
-      );
-    } else {
-      throw new Error(`Unsupported model type for file ${file}`);
-    }
   }
 
   public async createShader<
