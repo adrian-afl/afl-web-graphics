@@ -7,7 +7,8 @@ import {
   LoadTextureInput2D,
   MaybePromise,
   ShaderProgram,
-  ShaderUniformsLayout,
+  ShaderSamplers,
+  ShaderUniforms,
   Texture2D,
   TextureInput2DParameters,
 } from "../GPUApiInterface";
@@ -133,11 +134,15 @@ export class WebGLApiImplementation implements GPUApiInterface {
     }
   }
 
-  public async createShader<Layout extends ShaderUniformsLayout>(
+  public async createShader<
+    Uniforms extends ShaderUniforms,
+    Samplers extends ShaderSamplers,
+  >(
     vertex: string,
     fragment: string,
-    uniformLayout: Layout
-  ): Promise<ShaderProgram<Layout>> {
+    uniforms: Uniforms,
+    samplers: Samplers
+  ): Promise<ShaderProgram<Uniforms, Samplers>> {
     const vertexSrc = await loadAndResolveShaderSource(vertex);
     const fragmentSrc = await loadAndResolveShaderSource(fragment);
 
@@ -145,7 +150,8 @@ export class WebGLApiImplementation implements GPUApiInterface {
       this.gl,
       vertexSrc,
       fragmentSrc,
-      uniformLayout
+      uniforms,
+      samplers
     );
   }
 

@@ -418,7 +418,7 @@ export class WebGLTexture2D implements Texture2D {
   }
 
   public getHandle(): unknown {
-    return this.handle;
+    return { handle: this.handle, target: this.gl.TEXTURE_2D };
   }
 
   public getParameters(): TextureInput2DParameters {

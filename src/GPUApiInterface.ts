@@ -1,3 +1,12 @@
+import {
+  Matrix2,
+  Matrix3,
+  Matrix4,
+  Vector2,
+  Vector3,
+  Vector4,
+} from "@aeroflightlabs/linear-math";
+
 export type MaybePromise<T> = Promise<T> | T;
 
 export type ShaderUniformFormat = "int" | "uint" | "float";
@@ -84,147 +93,84 @@ export interface Texture2D {
 }
 
 export interface ShaderUniformsScalar {
+  type: "scalar";
   format: ShaderUniformFormat;
+  isArray?: boolean;
 }
 
 export interface ShaderUniformsVector {
+  type: "vector";
   format: ShaderUniformFormat;
   dimensions: 2 | 3 | 4;
+  isArray?: boolean;
 }
 
 export interface ShaderUniformsMatrix {
+  type: "matrix";
   format: ShaderUniformFormat;
   dimensions: 2 | 3 | 4;
+  transpose?: boolean;
+  isArray?: boolean;
 }
+
+export type SamplerType =
+  | "sampler1D"
+  | "sampler2D"
+  | "sampler3D"
+  | "samplerCube";
 
 export interface ShaderUniformsSampler {
-  dimensions: TextureInput2DParameters["dimensions"];
-  format: TextureInput2DParameters["format"];
+  type: SamplerType;
+  isArray?: boolean;
 }
 
-export interface ShaderUniformsLayout {
-  single: {
-    scalars: Record<string, ShaderUniformsScalar>;
-    vectors: Record<string, ShaderUniformsVector>;
-    matrices: Record<string, ShaderUniformsMatrix>;
-  };
-  arrays: {
-    scalars: Record<string, ShaderUniformsScalar>;
-    vectors: Record<string, ShaderUniformsVector>;
-    matrices: Record<string, ShaderUniformsMatrix>;
-  };
-  samplers: Record<string, ShaderUniformsSampler>;
-}
+export type ShaderUniforms = Readonly<{
+  [K: string]:
+    | ShaderUniformsScalar
+    | ShaderUniformsVector
+    | ShaderUniformsMatrix
+    | ShaderUniformsSampler;
+}>;
 
-// samplers binds
+export type ShaderSamplers = Readonly<{
+  [K: string]: ShaderUniformsSampler;
+}>;
 
-export interface ShaderSamplerBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["samplers"], string>,
+export interface ShaderProgram<
+  Uniforms extends ShaderUniforms,
+  Samplers extends ShaderSamplers,
 > {
-  name: Name;
-  texture: Texture2D;
-}
-
-// single binds
-
-export interface ShaderUniformSingleScalarBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["single"]["scalars"], string>,
-> {
-  name: Name;
-  value: number;
-}
-
-export interface ShaderUniformSingleVectorBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["single"]["vectors"], string>,
-> {
-  name: Name;
-  value: number[];
-}
-
-export interface ShaderUniformSingleMatrixBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["single"]["matrices"], string>,
-> {
-  name: Name;
-  transpose?: boolean;
-  value: number[];
-}
-
-// array binds
-
-export interface ShaderUniformArrayScalarBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["arrays"]["scalars"], string>,
-> {
-  name: Name;
-  values: number[];
-}
-
-export interface ShaderUniformArrayVectorBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["arrays"]["vectors"], string>,
-> {
-  name: Name;
-  values: number[];
-}
-
-export interface ShaderUniformArrayMatrixBind<
-  Layout extends ShaderUniformsLayout,
-  Name extends Extract<keyof Layout["arrays"]["matrices"], string>,
-> {
-  name: Name;
-  transpose?: boolean;
-  values: number[];
-}
-
-export interface ShaderProgram<Layout extends ShaderUniformsLayout> {
   use(): MaybePromise<void>;
 
-  setSamplersArray(
-    binds: ShaderSamplerBind<
-      Layout,
-      Extract<keyof Layout["samplers"], string>
-    >[]
-  ): MaybePromise<void>;
-
-  setSampler(
-    activeTextureIndex: number,
-    bind: ShaderSamplerBind<Layout, Extract<keyof Layout["samplers"], string>>
-  ): MaybePromise<void>;
-
-  setUniforms(uniforms: {
-    single?: {
-      scalars?: ShaderUniformSingleScalarBind<
-        Layout,
-        Extract<keyof Layout["single"]["scalars"], string>
-      >[];
-      vectors?: ShaderUniformSingleVectorBind<
-        Layout,
-        Extract<keyof Layout["single"]["vectors"], string>
-      >[];
-      matrices?: ShaderUniformSingleMatrixBind<
-        Layout,
-        Extract<keyof Layout["single"]["matrices"], string>
-      >[];
-    };
-    arrays?: {
-      scalars?: ShaderUniformArrayScalarBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["scalars"], string>
-      >[];
-      vectors?: ShaderUniformArrayVectorBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["vectors"], string>
-      >[];
-      matrices?: ShaderUniformArrayMatrixBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["matrices"], string>
-      >[];
-    };
+  bindSamplers(binds: {
+    [K in Extract<keyof Samplers, string>]: Texture2D;
   }): MaybePromise<void>;
+
+  bindSampler(
+    activeTextureIndex: number,
+    name: Extract<keyof Samplers, string>,
+    texture: Texture2D
+  ): MaybePromise<void>;
+
+  setUniforms(
+    binds: Record<
+      Extract<keyof Uniforms, string>,
+      | number
+      | number[]
+      | Vector2
+      | Vector3
+      | Vector4
+      | Matrix2
+      | Matrix3
+      | Matrix4
+      | Vector2[]
+      | Vector3[]
+      | Vector4[]
+      | Matrix2[]
+      | Matrix3[]
+      | Matrix4[]
+    >
+  ): MaybePromise<void>;
 }
 
 export interface GPUApiInterface {
@@ -244,11 +190,15 @@ export interface GPUApiInterface {
   ): MaybePromise<Geometry>;
   loadGeometry(file: string): MaybePromise<Geometry>;
 
-  createShader<Layout extends ShaderUniformsLayout>(
+  createShader<
+    Uniforms extends ShaderUniforms,
+    Samplers extends ShaderSamplers,
+  >(
     vertex: string,
     fragment: string,
-    uniformLayout: Layout
-  ): MaybePromise<ShaderProgram<Layout>>;
+    uniforms: Uniforms,
+    samplers: Samplers
+  ): MaybePromise<ShaderProgram<Uniforms, Samplers>>;
 
   createTexture2D(
     params: TextureInput2DParameters,

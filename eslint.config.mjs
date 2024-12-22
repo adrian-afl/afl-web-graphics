@@ -41,6 +41,8 @@ export default tseslint.config(
         "arrowParens": "always",
         "endOfLine": "lf"
       }],
+      "@typescript-eslint/consistent-indexed-object-style": "off",
+      "@typescript-eslint/prefer-for-of": "off", // performance
       "import/no-unresolved": "off",
       "import/order": ["error", {
         "groups": [

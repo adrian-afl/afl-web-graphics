@@ -1,8 +1,9 @@
 import { Matrix4, Quaternion, Vector3 } from "@aeroflightlabs/linear-math";
 import {
   GPUApiInterface,
-  ShaderUniformsLayout,
-  WebGLApiImplementation,
+  ShaderSamplers,
+  ShaderUniforms,
+  WebGLApiImplementation
 } from "../../dist";
 
 async function initWebGL2(): Promise<void> {
@@ -16,37 +17,34 @@ async function initWebGL2(): Promise<void> {
   const dingusGeometry = await api.loadGeometry("dingus.obj");
   const dingusTexture = await api.loadTexture2D("dingus.jpg", {});
 
-  const shaderLayout = {
-    single: {
-      scalars: {},
-      matrices: {
-        modelMatrix: {
-          dimensions: 4,
-          format: "float",
-        },
-      },
-      vectors: {},
+  const uniforms = {
+    modelMatrix: {
+      type: "matrix",
+      dimensions: 4,
+      format: "float",
     },
-    arrays: { scalars: {}, matrices: {}, vectors: {} },
-    samplers: { colorTexture: { dimensions: 4, format: "float16" } },
-  } as const satisfies ShaderUniformsLayout;
+  } satisfies ShaderUniforms;
+
+  const samplers = {
+    colorTexture: {
+      type: "sampler2D",
+    },
+  } satisfies ShaderSamplers;
 
   const shader = await api.createShader(
     "dingus.vert",
     "dingus.frag",
-    shaderLayout
+    uniforms,
+    samplers
   );
 
   const dingusOrientation = new Matrix4();
 
   await shader.use();
 
-  await shader.setSamplersArray([
-    {
-      name: "colorTexture",
-      texture: dingusTexture,
-    },
-  ]);
+  await shader.bindSamplers({
+    colorTexture: dingusTexture
+  });
 
   const defaultFramebuffer = await api.getDefaultFramebuffer();
   await defaultFramebuffer.bind();
@@ -64,14 +62,7 @@ async function initWebGL2(): Promise<void> {
     );
 
     await shader.setUniforms({
-      single: {
-        matrices: [
-          {
-            name: "modelMatrix",
-            value: dingusOrientation.array,
-          },
-        ],
-      },
+      modelMatrix: dingusOrientation
     });
 
     await dingusGeometry.draw();

@@ -1,17 +1,20 @@
 import {
   MaybePromise,
   ShaderProgram,
-  ShaderSamplerBind,
-  ShaderUniformArrayMatrixBind,
-  ShaderUniformArrayScalarBind,
-  ShaderUniformArrayVectorBind,
+  ShaderSamplers,
   ShaderUniformFormat,
-  ShaderUniformSingleMatrixBind,
-  ShaderUniformSingleScalarBind,
-  ShaderUniformSingleVectorBind,
-  ShaderUniformsLayout,
+  ShaderUniforms,
   ShaderUniformVectorArrayFormat,
+  Texture2D,
 } from "../GPUApiInterface";
+import {
+  Matrix2,
+  Matrix3,
+  Matrix4,
+  Vector2,
+  Vector3,
+  Vector4,
+} from "@aeroflightlabs/linear-math";
 
 function compileShader(
   gl: WebGL2RenderingContext,
@@ -60,8 +63,10 @@ function compileProgram(
   return program;
 }
 
-export class WebGLShaderProgram<Layout extends ShaderUniformsLayout>
-  implements ShaderProgram<Layout>
+export class WebGLShaderProgram<
+  Uniforms extends ShaderUniforms,
+  Samplers extends ShaderSamplers,
+> implements ShaderProgram<Uniforms, Samplers>
 {
   public readonly handle: WebGLProgram;
   private readonly uniformsLocationsMap: Map<
@@ -73,52 +78,18 @@ export class WebGLShaderProgram<Layout extends ShaderUniformsLayout>
     private readonly gl: WebGL2RenderingContext,
     vertexShaderSource: string,
     fragmentShaderSource: string,
-    private readonly uniformLayout: Layout
+    private readonly uniforms: Uniforms,
+    samplers: Samplers
   ) {
     this.handle = compileProgram(gl, vertexShaderSource, fragmentShaderSource);
-    for (const key in uniformLayout.single.scalars) {
+    for (const key in uniforms) {
       const location = gl.getUniformLocation(this.handle, key);
       if (!location) {
         console.warn(`Cannot find the location of uniform ${key}`);
       }
       this.uniformsLocationsMap.set(key, location);
     }
-    for (const key in uniformLayout.single.vectors) {
-      const location = gl.getUniformLocation(this.handle, key);
-      if (!location) {
-        console.warn(`Cannot find the location of uniform ${key}`);
-      }
-      this.uniformsLocationsMap.set(key, location);
-    }
-    for (const key in uniformLayout.single.matrices) {
-      const location = gl.getUniformLocation(this.handle, key);
-      if (!location) {
-        console.warn(`Cannot find the location of uniform ${key}`);
-      }
-      this.uniformsLocationsMap.set(key, location);
-    }
-    for (const key in uniformLayout.arrays.scalars) {
-      const location = gl.getUniformLocation(this.handle, key);
-      if (!location) {
-        console.warn(`Cannot find the location of uniform ${key}`);
-      }
-      this.uniformsLocationsMap.set(key, location);
-    }
-    for (const key in uniformLayout.arrays.vectors) {
-      const location = gl.getUniformLocation(this.handle, key);
-      if (!location) {
-        console.warn(`Cannot find the location of uniform ${key}`);
-      }
-      this.uniformsLocationsMap.set(key, location);
-    }
-    for (const key in uniformLayout.arrays.matrices) {
-      const location = gl.getUniformLocation(this.handle, key);
-      if (!location) {
-        console.warn(`Cannot find the location of uniform ${key}`);
-      }
-      this.uniformsLocationsMap.set(key, location);
-    }
-    for (const key in uniformLayout.samplers) {
+    for (const key in samplers) {
       const location = gl.getUniformLocation(this.handle, key);
       if (!location) {
         console.warn(`Cannot find the location of uniform ${key}`);
@@ -135,191 +106,235 @@ export class WebGLShaderProgram<Layout extends ShaderUniformsLayout>
     return this.uniformsLocationsMap.get(name) ?? null;
   }
 
-  public setSampler(
+  public bindSampler(
     activeTextureIndex: number,
-    bind: ShaderSamplerBind<Layout, Extract<keyof Layout["samplers"], string>>
+    name: Extract<keyof Samplers, string>,
+    texture: Texture2D
   ): void {
     this.gl.activeTexture(this.gl.TEXTURE0 + activeTextureIndex);
-    this.gl.bindTexture(
-      this.gl.TEXTURE_2D,
-      bind.texture.getHandle() as WebGLTexture
-    );
-    this.gl.uniform1i(this.getUniformLocation(bind.name), activeTextureIndex);
+    const glHandle = texture.getHandle() as {
+      handle: WebGLTexture;
+      target: GLenum;
+    };
+    this.gl.bindTexture(glHandle.target, glHandle.handle);
+    this.gl.uniform1i(this.getUniformLocation(name), activeTextureIndex);
   }
 
-  public setSamplersArray(
-    binds: ShaderSamplerBind<
-      Layout,
-      Extract<keyof Layout["samplers"], string>
-    >[]
-  ): void {
-    for (let i = 0; i < binds.length; i++) {
+  public bindSamplers(binds: {
+    [K in Extract<keyof Samplers, string>]: Texture2D;
+  }): void {
+    const entries = Object.entries(binds);
+    for (let i = 0; i < entries.length; i++) {
+      const name = entries[i][0];
+      const texture = entries[i][1];
+      const glHandle = texture.getHandle() as {
+        handle: WebGLTexture;
+        target: GLenum;
+      };
       this.gl.activeTexture(this.gl.TEXTURE0 + i);
-      this.gl.bindTexture(
-        this.gl.TEXTURE_2D,
-        binds[i].texture.getHandle() as WebGLTexture
-      );
-      this.gl.uniform1i(this.getUniformLocation(binds[i].name), i);
+      this.gl.bindTexture(glHandle.target, glHandle.handle);
+      this.gl.uniform1i(this.getUniformLocation(name), i);
     }
   }
 
-  public setUniforms(uniforms: {
-    single?: {
-      scalars?: ShaderUniformSingleScalarBind<
-        Layout,
-        Extract<keyof Layout["single"]["scalars"], string>
-      >[];
-      vectors?: ShaderUniformSingleVectorBind<
-        Layout,
-        Extract<keyof Layout["single"]["vectors"], string>
-      >[];
-      matrices?: ShaderUniformSingleMatrixBind<
-        Layout,
-        Extract<keyof Layout["single"]["matrices"], string>
-      >[];
-    };
-    arrays?: {
-      scalars?: ShaderUniformArrayScalarBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["scalars"], string>
-      >[];
-      vectors?: ShaderUniformArrayVectorBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["vectors"], string>
-      >[];
-      matrices?: ShaderUniformArrayMatrixBind<
-        Layout,
-        Extract<keyof Layout["arrays"]["matrices"], string>
-      >[];
-    };
-  }): MaybePromise<void> {
-    if (uniforms.single) {
-      if (uniforms.single.scalars) {
-        for (const uniform of uniforms.single.scalars) {
-          this.setUniform1(
-            uniform.name,
-            this.uniformLayout.single.scalars[uniform.name].format,
-            uniform.value
-          );
-        }
-      }
-      if (uniforms.single.vectors) {
-        for (const uniform of uniforms.single.vectors) {
-          switch (this.uniformLayout.single.vectors[uniform.name].dimensions) {
+  public setUniforms(
+    binds: Record<
+      Extract<keyof Uniforms, string>,
+      | number
+      | number[]
+      | Vector2
+      | Vector3
+      | Vector4
+      | Matrix2
+      | Matrix3
+      | Matrix4
+      | Vector2[]
+      | Vector3[]
+      | Vector4[]
+      | Matrix2[]
+      | Matrix3[]
+      | Matrix4[]
+    >
+  ): MaybePromise<void> {
+    const entries = Object.entries(binds);
+    for (let i = 0; i < entries.length; i++) {
+      const name = entries[i][0];
+      const value = entries[i][1];
+      const definition = this.uniforms[name];
+      if (definition.isArray !== true) {
+        if (definition.type === "scalar") {
+          if (!(typeof value === "number")) {
+            throw new Error(
+              `Scalar uniform value mismatch, expected scalar for name ${name}`
+            );
+          }
+          this.setUniform1(name, definition.format, value);
+        } else if (definition.type === "vector") {
+          const arrayValue: number[] = [];
+          if (typeof value === "object") {
+            if ("x" in value) {
+              arrayValue.push(value.x);
+            }
+            if ("y" in value) {
+              arrayValue.push(value.y);
+            }
+            if ("z" in value) {
+              arrayValue.push(value.z);
+            }
+            if ("w" in value) {
+              arrayValue.push(value.w);
+            }
+          } else if (Array.isArray(value)) {
+            arrayValue.push(...value);
+          }
+          switch (definition.dimensions) {
             case 2:
-              if (uniform.value.length !== 2) {
-                throw new Error("Vector4 dimensions mismatch");
+              if (arrayValue.length !== 2) {
+                throw new Error("Vector4 uniform dimensions mismatch");
               }
               this.setUniform2(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.value[0],
-                uniform.value[1]
+                name,
+                definition.format,
+                arrayValue[0],
+                arrayValue[1]
               );
               break;
             case 3:
-              if (uniform.value.length !== 3) {
-                throw new Error("Vector4 dimensions mismatch");
+              if (arrayValue.length !== 3) {
+                throw new Error("Vector4 uniform dimensions mismatch");
               }
               this.setUniform3(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.value[0],
-                uniform.value[1],
-                uniform.value[2]
+                name,
+                definition.format,
+                arrayValue[0],
+                arrayValue[1],
+                arrayValue[2]
               );
               break;
             case 4:
-              if (uniform.value.length !== 4) {
-                throw new Error("Vector4 dimensions mismatch");
+              if (arrayValue.length !== 4) {
+                throw new Error("Vector4 uniform dimensions mismatch");
               }
               this.setUniform4(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.value[0],
-                uniform.value[1],
-                uniform.value[2],
-                uniform.value[3]
+                name,
+                definition.format,
+                arrayValue[0],
+                arrayValue[1],
+                arrayValue[2],
+                arrayValue[3]
               );
               break;
           }
-        }
-      }
-      if (uniforms.single.matrices) {
-        for (const uniform of uniforms.single.matrices) {
-          const dimensions =
-            this.uniformLayout.single.matrices[uniform.name].dimensions;
-          if (uniform.value.length !== dimensions * dimensions) {
+        } else if (definition.type === "matrix") {
+          if (typeof value === "number") {
+            throw new Error(
+              `Matrix uniform value mismatch, expected array or matrix for name ${name}`
+            );
+          }
+          let arrayValue: number[] = [];
+          if (typeof value === "object") {
+            if ("array" in value && Array.isArray(value.array)) {
+              arrayValue = value.array;
+            }
+          } else if (Array.isArray(value)) {
+            arrayValue = value;
+          }
+          if (
+            arrayValue.length !==
+            definition.dimensions * definition.dimensions
+          ) {
             throw new Error("Matrix dimensions mismatch");
           }
           this.setUniformMatrixArray(
-            uniform.name,
-            dimensions,
-            uniform.transpose ?? false,
-            uniform.value
+            name,
+            definition.dimensions,
+            definition.transpose ?? false,
+            arrayValue
           );
         }
-      }
-    }
-    if (uniforms.arrays) {
-      if (uniforms.arrays.scalars) {
-        for (const uniform of uniforms.arrays.scalars) {
-          this.setUniform1Array(
-            uniform.name,
-            this.uniformLayout.single.scalars[uniform.name].format,
-            uniform.values
+      } else {
+        if (!Array.isArray(value)) {
+          throw new Error(
+            `Scalar array uniform value mismatch, expected array for name ${name}`
           );
         }
-      }
-      if (uniforms.arrays.vectors) {
-        for (const uniform of uniforms.arrays.vectors) {
-          switch (this.uniformLayout.single.vectors[uniform.name].dimensions) {
+        const firstValue = value[0];
+        if (definition.type === "scalar") {
+          if (!(typeof firstValue === "number")) {
+            throw new Error(
+              `Scalar array uniform value mismatch, expected array of numbers for name ${name}`
+            );
+          }
+          this.setUniform1Array(name, definition.format, value as number[]);
+        } else if (definition.type === "vector") {
+          const arrayValue: number[] = [];
+          for (let x = 0; x < value.length; x++) {
+            const v = value[x];
+            if (typeof v === "object") {
+              if ("x" in v) {
+                arrayValue.push(v.x);
+              }
+              if ("y" in v) {
+                arrayValue.push(v.y);
+              }
+              if ("z" in v) {
+                arrayValue.push(v.z);
+              }
+              if ("w" in v) {
+                arrayValue.push(v.w);
+              }
+            } else if (typeof v === "number") {
+              arrayValue.push(v);
+            }
+          }
+          switch (definition.dimensions) {
             case 2:
-              if (uniform.values.length % 3 !== 0) {
+              if (arrayValue.length % 3 !== 0) {
                 throw new Error("Vector2 array dimensions mismatch");
               }
-              this.setUniform2Array(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.values
-              );
+              this.setUniform2Array(name, definition.format, arrayValue);
               break;
             case 3:
-              if (uniform.values.length % 3 !== 0) {
+              if (arrayValue.length % 3 !== 0) {
                 throw new Error("Vector3 array dimensions mismatch");
               }
-              this.setUniform3Array(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.values
-              );
+              this.setUniform3Array(name, definition.format, arrayValue);
               break;
             case 4:
-              if (uniform.values.length % 4 !== 0) {
+              if (arrayValue.length % 4 !== 0) {
                 throw new Error("Vector4 array dimensions mismatch");
               }
-              this.setUniform4Array(
-                uniform.name,
-                this.uniformLayout.single.vectors[uniform.name].format,
-                uniform.values
-              );
+              this.setUniform4Array(name, definition.format, arrayValue);
               break;
           }
-        }
-      }
-      if (uniforms.arrays.matrices) {
-        for (const uniform of uniforms.arrays.matrices) {
-          const dimensions =
-            this.uniformLayout.single.matrices[uniform.name].dimensions;
-          if (uniform.values.length % (dimensions * dimensions) !== 0) {
-            throw new Error("Matrix array dimensions mismatch");
+        } else if (definition.type === "matrix") {
+          const arrayValue: number[] =
+            typeof value[0] === "number" ? (value as number[]) : [];
+          if (typeof value[0] === "object") {
+            for (let x = 0; x < value.length; x++) {
+              const v = value[x];
+              if (
+                typeof v === "object" &&
+                "array" in v &&
+                Array.isArray(v.array)
+              ) {
+                arrayValue.push(...v.array);
+              }
+            }
+            if (
+              (arrayValue.length % definition.dimensions) *
+                definition.dimensions !==
+              0
+            ) {
+              throw new Error("Matrix dimensions mismatch");
+            }
+            this.setUniformMatrixArray(
+              name,
+              definition.dimensions,
+              definition.transpose ?? false,
+              arrayValue
+            );
           }
-          this.setUniformMatrixArray(
-            uniform.name,
-            dimensions,
-            uniform.transpose ?? false,
-            uniform.values
-          );
         }
       }
     }
