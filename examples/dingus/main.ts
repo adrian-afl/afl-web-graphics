@@ -1,42 +1,55 @@
-import { Matrix4, Quaternion, Vector3 } from "@aeroflightlabs/linear-math";
+import {
+  Matrix4,
+  Quaternion,
+  Vector3,
+  Vector4,
+} from "@aeroflightlabs/linear-math";
 import {
   GPUApiInterface,
   ShaderSamplers,
   ShaderUniforms,
-  WebGLApiImplementation
+  WebGLApiImplementation,
 } from "../../dist";
+import { ShaderProgram } from "../../src";
 
 async function initWebGL2(): Promise<void> {
   const canvas = document.createElement("canvas");
-  canvas.width = 640;
-  canvas.height = 480;
+  canvas.width = 320;
+  canvas.height = 240;
   document.body.appendChild(canvas);
   const api = new WebGLApiImplementation() as GPUApiInterface;
-  await api.initialize(canvas, 640, 480, true);
+  await api.initialize(canvas, 320, 240, true);
 
   const dingusResponse = await fetch("dingus.raw");
-  const dingusGeometryBuffer =await  dingusResponse.arrayBuffer()
+  const dingusGeometryBuffer = await dingusResponse.arrayBuffer();
 
   const dingusGeometry = await api.createGeometry({
     "attributes": [
       { "dimensions": 3, "normalize": false, "format": "float32" },
       { "dimensions": 3, "normalize": false, "format": "float32" },
-      { "dimensions": 2, "normalize": false, "format": "float32" }
-    ]
+      { "dimensions": 2, "normalize": false, "format": "float32" },
+    ],
   }, dingusGeometryBuffer);
   const dingusTexture = await api.loadTexture2D("dingus.jpg", {});
 
-  const uniforms = {
+  const modelUniforms = {
     modelMatrix: {
       type: "matrix",
       dimensions: 4,
       format: "float",
     },
+  } satisfies ShaderUniforms;
+
+  const cameraUniforms = {
     projectionMatrix: {
       type: "matrix",
       dimensions: 4,
       format: "float",
     },
+  } satisfies ShaderUniforms;
+
+  const uniforms = {
+    ...modelUniforms, ...cameraUniforms,
   } satisfies ShaderUniforms;
 
   const samplers = {
@@ -49,22 +62,27 @@ async function initWebGL2(): Promise<void> {
     "dingus.vert",
     "dingus.frag",
     uniforms,
-    samplers
+    samplers,
   );
 
   const dingusOrientation = new Matrix4();
 
   const projectionMatrix = new Matrix4().perspective(70.0, 1.0, 0.1, 100.0);
 
+  async function setProjectionMatrixUniform(shader: ShaderProgram<typeof cameraUniforms>): Promise<void> {
+    await shader.setUniforms({
+      projectionMatrix,
+    });
+  }
+
   await shader.use();
 
   await shader.bindSamplers({
-    colorTexture: dingusTexture
+    colorTexture: dingusTexture,
   });
 
   const defaultFramebuffer = await api.getDefaultFramebuffer();
   await defaultFramebuffer.bind();
-  await defaultFramebuffer.clear([0, 0, 0, 1]);
 
   const startTime = Date.now();
   const loop = async (): Promise<void> => {
@@ -74,14 +92,16 @@ async function initWebGL2(): Promise<void> {
     dingusOrientation.fromRotationTranslationScale(
       new Quaternion().setAxisAngle(new Vector3(0.0, 1.0, 0.0), -elapsed),
       new Vector3(0, -0.3, -2),
-      new Vector3(0.4, 0.4, 0.4)
+      new Vector3(0.4, 0.4, 0.4),
     );
 
     await shader.setUniforms({
       modelMatrix: dingusOrientation,
-      projectionMatrix
     });
 
+    await setProjectionMatrixUniform(shader);
+
+    await defaultFramebuffer.clear({color: new Vector4(1.0, 1.0, 0.0, 1.0), depth: 1.0});
     await dingusGeometry.draw();
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises

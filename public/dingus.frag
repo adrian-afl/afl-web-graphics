@@ -4,6 +4,7 @@ precision highp float;
 uniform sampler2D colorTexture;
 
 in vec2 uv;
+in vec3 norm;
 
 layout (location = 0) out vec4 outColor;
 

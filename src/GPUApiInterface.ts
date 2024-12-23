@@ -66,7 +66,7 @@ export interface Geometry {
 }
 
 export interface DefaultFramebuffer {
-  clear(color: number[] & { length: 4 }, depth?: number): MaybePromise<void>;
+  clear(clear: { color?: Vector4; depth?: number }): MaybePromise<void>;
   bind(): MaybePromise<void>;
   resize(width: number, height: number): MaybePromise<void>;
   getSize(): MaybePromise<{ width: number; height: number }>;
@@ -137,8 +137,10 @@ export type ShaderSamplers = Readonly<{
 }>;
 
 export interface ShaderProgram<
-  Uniforms extends ShaderUniforms,
-  Samplers extends ShaderSamplers,
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  Uniforms extends ShaderUniforms = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  Samplers extends ShaderSamplers = {},
 > {
   use(): MaybePromise<void>;
 

@@ -9,8 +9,10 @@ in vec3 inNormal;
 in vec2 inUV;
 
 out vec2 uv;
+out vec3 norm;
 
 void main() {
   uv = inUV;
+  norm = inNormal;
   gl_Position = vec4(projectionMatrix * modelMatrix * vec4(inVertexPos, 1.0));
 }

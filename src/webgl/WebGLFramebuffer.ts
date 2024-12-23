@@ -5,6 +5,7 @@ import {
   TextureInput2DParameters,
 } from "../GPUApiInterface";
 import { genericToWebGLMappers } from "./WebGLTexture2D";
+import { Vector4 } from "@aeroflightlabs/linear-math";
 
 export class WebGLDefaultFramebuffer implements DefaultFramebuffer {
   public readonly handle: WebGLFramebuffer | null = null;
@@ -16,14 +17,22 @@ export class WebGLDefaultFramebuffer implements DefaultFramebuffer {
     protected readonly withDepth: boolean
   ) {}
 
-  public clear(color: number[] & { length: 4 }, depth?: number): void {
-    this.gl.clearColor(color[0], color[1], color[2], color[3]);
-    if (this.withDepth && depth) {
-      this.gl.clearDepth(depth);
-      this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    } else {
-      this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  public clear(clear: { color?: Vector4; depth?: number }): void {
+    let mask: GLbitfield = 0;
+    if (clear.color !== undefined) {
+      mask = mask | this.gl.COLOR_BUFFER_BIT;
+      this.gl.clearColor(
+        clear.color.x,
+        clear.color.y,
+        clear.color.z,
+        clear.color.w
+      );
     }
+    if (clear.depth !== undefined) {
+      mask = mask | this.gl.DEPTH_BUFFER_BIT;
+      this.gl.clearDepth(clear.depth);
+    }
+    this.gl.clear(mask);
   }
 
   public bind(): void {
@@ -120,11 +129,15 @@ export class WebGLFramebufferClass
     const buffers: GLenum[] = [];
     this.renderBuffersParameters = [];
     for (let i = 0; i < textures.length; i++) {
+      const glHandle = textures[i].getHandle() as {
+        handle: WebGLTexture;
+        target: GLenum;
+      };
       this.gl.framebufferTexture2D(
         this.gl.FRAMEBUFFER,
         this.gl.COLOR_ATTACHMENT0 + i,
         this.gl.TEXTURE_2D,
-        textures[i].getHandle() as WebGLTexture,
+        glHandle.handle,
         0
       );
       buffers.push(this.gl.COLOR_ATTACHMENT0 + i);
