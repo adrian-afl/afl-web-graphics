@@ -24,6 +24,7 @@ export interface TextureInput2DParameters {
   format:
     | "int8"
     | "uint8"
+    | "uint8-normalized"
     | "int16"
     | "uint16"
     | "int32"

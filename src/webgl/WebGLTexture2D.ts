@@ -70,28 +70,28 @@ export const genericToWebGLMappers = {
           case 1:
             return {
               internalFormat: WebGL2RenderingContext.R8I,
-              format: WebGL2RenderingContext.RED,
+              format: WebGL2RenderingContext.RED_INTEGER,
               type: WebGL2RenderingContext.BYTE,
               pixelByteSize: 1,
             };
           case 2:
             return {
               internalFormat: WebGL2RenderingContext.RG8I,
-              format: WebGL2RenderingContext.RG,
+              format: WebGL2RenderingContext.RG_INTEGER,
               type: WebGL2RenderingContext.BYTE,
               pixelByteSize: 2,
             };
           case 3:
             return {
               internalFormat: WebGL2RenderingContext.RGB8I,
-              format: WebGL2RenderingContext.RGB,
+              format: WebGL2RenderingContext.RGB_INTEGER,
               type: WebGL2RenderingContext.BYTE,
               pixelByteSize: 3,
             };
           case 4:
             return {
               internalFormat: WebGL2RenderingContext.RGBA8I,
-              format: WebGL2RenderingContext.RGBA,
+              format: WebGL2RenderingContext.RGBA_INTEGER,
               type: WebGL2RenderingContext.BYTE,
               pixelByteSize: 4,
             };
@@ -102,27 +102,59 @@ export const genericToWebGLMappers = {
           case 1:
             return {
               internalFormat: WebGL2RenderingContext.R8UI,
-              format: WebGL2RenderingContext.RED,
+              format: WebGL2RenderingContext.RED_INTEGER,
               type: WebGL2RenderingContext.UNSIGNED_BYTE,
               pixelByteSize: 1,
             };
           case 2:
             return {
               internalFormat: WebGL2RenderingContext.RG8UI,
-              format: WebGL2RenderingContext.RG,
+              format: WebGL2RenderingContext.RG_INTEGER,
               type: WebGL2RenderingContext.UNSIGNED_BYTE,
               pixelByteSize: 2,
             };
           case 3:
             return {
               internalFormat: WebGL2RenderingContext.RGB8UI,
-              format: WebGL2RenderingContext.RGB,
+              format: WebGL2RenderingContext.RGB_INTEGER,
               type: WebGL2RenderingContext.UNSIGNED_BYTE,
               pixelByteSize: 3,
             };
           case 4:
             return {
               internalFormat: WebGL2RenderingContext.RGBA8UI,
+              format: WebGL2RenderingContext.RGBA_INTEGER,
+              type: WebGL2RenderingContext.UNSIGNED_BYTE,
+              pixelByteSize: 4,
+            };
+        }
+        break;
+      case "uint8-normalized":
+        switch (dimensions) {
+          case 1:
+            return {
+              internalFormat: WebGL2RenderingContext.R8,
+              format: WebGL2RenderingContext.RED,
+              type: WebGL2RenderingContext.UNSIGNED_BYTE,
+              pixelByteSize: 1,
+            };
+          case 2:
+            return {
+              internalFormat: WebGL2RenderingContext.RG8,
+              format: WebGL2RenderingContext.RG,
+              type: WebGL2RenderingContext.UNSIGNED_BYTE,
+              pixelByteSize: 2,
+            };
+          case 3:
+            return {
+              internalFormat: WebGL2RenderingContext.RGB8,
+              format: WebGL2RenderingContext.RGB,
+              type: WebGL2RenderingContext.UNSIGNED_BYTE,
+              pixelByteSize: 3,
+            };
+          case 4:
+            return {
+              internalFormat: WebGL2RenderingContext.RGBA8,
               format: WebGL2RenderingContext.RGBA,
               type: WebGL2RenderingContext.UNSIGNED_BYTE,
               pixelByteSize: 4,
